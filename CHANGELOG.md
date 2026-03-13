@@ -60,3 +60,4 @@ Folgender Ablauf funktioniert:
 
 ### Ergebnis
 Das System läuft vollständig als Walking Skeleton und bildet den grundlegenden Datenfluss der Anwendung ab.
+#
