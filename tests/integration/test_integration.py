@@ -32,7 +32,7 @@ class TestIntegration:
         assert len(movements) == 3
 
         total_value = service.get_total_inventory_value()
-        assert total_value == 7200.0 + 600.0  # (1200*6) + (25*60)
+        assert total_value == 7200.0 + 1500.0  # (1200*6) + (25*60)  # (1200*6) + (25*60)
 
     def test_report_generation(self):
         """Test: Report-Generierung"""
