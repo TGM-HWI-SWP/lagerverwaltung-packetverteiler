@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QDoubleSpinBox,
     QInputDialog,
+    QAbstractItemView,
 )
 from PyQt6.QtCore import Qt
 
@@ -154,6 +155,9 @@ class WarehouseMainWindow(QMainWindow):
         self.products_table.setHorizontalHeaderLabels(
             ["ID", "Name", "Kategorie", "Bestand", "Preis (€)", "Gesamtwert (€)"]
         )
+        self.products_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.products_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.products_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.products_table)
 
         widget.setLayout(layout)
