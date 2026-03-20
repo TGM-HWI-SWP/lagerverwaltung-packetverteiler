@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
+    QTreeWidget,
+    QTreeWidgetItem,
     QLabel,
     QSpinBox,
     QLineEdit,
@@ -39,7 +41,6 @@ class ProductDialogWindow(QDialog):
 
         layout = QFormLayout()
 
-        self.product_id_field = QLineEdit()
         self.name_field = QLineEdit()
         self.description_field = QLineEdit()
         self.price_field = QDoubleSpinBox()
@@ -47,7 +48,6 @@ class ProductDialogWindow(QDialog):
         self.quantity_field = QSpinBox()
         self.category_field = QLineEdit()
 
-        layout.addRow("Produkt-ID:", self.product_id_field)
         layout.addRow("Name:", self.name_field)
         layout.addRow("Beschreibung:", self.description_field)
         layout.addRow("Preis (€):", self.price_field)
@@ -70,7 +70,6 @@ class ProductDialogWindow(QDialog):
     def get_data(self):
         """Eingegebene Daten abrufen"""
         return {
-            "product_id": self.product_id_field.text(),
             "name": self.name_field.text(),
             "description": self.description_field.text(),
             "price": self.price_field.value(),
@@ -149,16 +148,16 @@ class WarehouseMainWindow(QMainWindow):
 
         layout.addLayout(button_layout)
 
-        # Produkttabelle
-        self.products_table = QTableWidget()
-        self.products_table.setColumnCount(6)
-        self.products_table.setHorizontalHeaderLabels(
+        # Produkttabelle mit Kategorien als einklappbare Gruppen
+        self.products_tree = QTreeWidget()
+        self.products_tree.setColumnCount(6)
+        self.products_tree.setHeaderLabels(
             ["ID", "Name", "Kategorie", "Bestand", "Preis (€)", "Gesamtwert (€)"]
         )
-        self.products_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.products_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.products_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        layout.addWidget(self.products_table)
+        self.products_tree.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.products_tree.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.products_tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        layout.addWidget(self.products_tree)
 
         widget.setLayout(layout)
         self.tabs.addTab(widget, "Produkte")
@@ -209,43 +208,77 @@ class WarehouseMainWindow(QMainWindow):
         if dialog.exec():
             data = dialog.get_data()
             try:
+                product_id = self._generate_product_id(data["name"], data.get("category", ""))
                 self.service.create_product(
-                    product_id=data["product_id"],
+                    product_id=product_id,
                     name=data["name"],
                     description=data["description"],
                     price=data["price"],
-                    category=data["category"],
+                    category=data.get("category", ""),
                     initial_quantity=data["quantity"],
                 )
-                QMessageBox.information(self, "Erfolg", "Produkt erfolgreich hinzugefügt")
+                QMessageBox.information(
+                    self,
+                    "Erfolg",
+                    f"Produkt erfolgreich hinzugefügt (ID: {product_id})",
+                )
                 self._refresh_products()
             except Exception as e:
                 QMessageBox.critical(self, "Fehler", str(e))
 
+    def _generate_product_id(self, name: str, category: str) -> str:
+        """Generiert eine eindeutige Produkt-ID"""
+        import re
+        from datetime import datetime
+
+        base = (category or "P").upper()
+        base = re.sub(r"[^A-Z0-9]", "", base)
+        if not base:
+            base = "P"
+
+        name_part = (name or "PRODUKT").upper()
+        name_part = re.sub(r"[^A-Z0-9]", "", name_part)
+        name_part = name_part[:8] if name_part else "ITEM"
+
+        timestamp_part = datetime.now().strftime("%H%M%S%f")
+
+        return f"{base}-{name_part}-{timestamp_part}"
+
     def _refresh_products(self):
         """Produkttabelle aktualisieren"""
+        self.products_tree.clear()
         products = self.service.get_all_products()
-        self.products_table.setRowCount(len(products))
 
-        for row, (product_id, product) in enumerate(products.items()):
-            self.products_table.setItem(row, 0, QTableWidgetItem(product_id))
-            self.products_table.setItem(row, 1, QTableWidgetItem(product.name))
-            self.products_table.setItem(row, 2, QTableWidgetItem(product.category))
-            self.products_table.setItem(row, 3, QTableWidgetItem(str(product.quantity)))
-            self.products_table.setItem(row, 4, QTableWidgetItem(f"{product.price:.2f}"))
-            self.products_table.setItem(
-                row, 5, QTableWidgetItem(f"{product.get_total_value():.2f}")
-            )
+        categories = {}
+        for product_id, product in products.items():
+            cat = product.category or "Unkategorisiert"
+            if cat not in categories:
+                cat_item = QTreeWidgetItem([cat])
+                cat_item.setFirstColumnSpanned(True)
+                cat_item.setExpanded(True)
+                self.products_tree.addTopLevelItem(cat_item)
+                categories[cat] = cat_item
+
+            child = QTreeWidgetItem([
+                product_id,
+                product.name,
+                product.category,
+                str(product.quantity),
+                f"{product.price:.2f}",
+                f"{product.get_total_value():.2f}",
+            ])
+            categories[cat].addChild(child)
+
+        self.products_tree.expandAll()
 
     def _delete_product(self):
         """Produkt löschen"""
-        row = self.products_table.currentRow()
-        if row < 0:
+        item = self.products_tree.currentItem()
+        if not item or item.parent() is None:
             QMessageBox.warning(self, "Warnung", "Bitte ein Produkt auswählen")
             return
 
-        product_id_item = self.products_table.item(row, 0)
-        product_id = product_id_item.text() if product_id_item else None
+        product_id = item.text(0)
         if not product_id:
             QMessageBox.warning(self, "Warnung", "Ungültige Auswahl")
             return
@@ -272,13 +305,12 @@ class WarehouseMainWindow(QMainWindow):
 
     def _incoming_stock(self):
         """Menge in den Bestand einlagern"""
-        row = self.products_table.currentRow()
-        if row < 0:
+        item = self.products_tree.currentItem()
+        if not item or item.parent() is None:
             QMessageBox.warning(self, "Warnung", "Bitte ein Produkt auswählen")
             return
 
-        product_id_item = self.products_table.item(row, 0)
-        product_id = product_id_item.text() if product_id_item else None
+        product_id = item.text(0)
         if not product_id:
             QMessageBox.warning(self, "Warnung", "Ungültige Auswahl")
             return
@@ -297,13 +329,12 @@ class WarehouseMainWindow(QMainWindow):
 
     def _outgoing_stock(self):
         """Menge aus dem Bestand auslagern"""
-        row = self.products_table.currentRow()
-        if row < 0:
+        item = self.products_tree.currentItem()
+        if not item or item.parent() is None:
             QMessageBox.warning(self, "Warnung", "Bitte ein Produkt auswählen")
             return
 
-        product_id_item = self.products_table.item(row, 0)
-        product_id = product_id_item.text() if product_id_item else None
+        product_id = item.text(0)
         if not product_id:
             QMessageBox.warning(self, "Warnung", "Ungültige Auswahl")
             return
