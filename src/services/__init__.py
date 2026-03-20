@@ -90,6 +90,13 @@ class WarehouseService:
         """Produkt abrufen"""
         return self.repository.load_product(product_id)
 
+    def delete_product(self, product_id: str) -> None:
+        """Produkt löschen"""
+        product = self.get_product(product_id)
+        if not product:
+            raise ValueError(f"Produkt {product_id} nicht gefunden")
+        self.repository.delete_product(product_id)
+
     def get_all_products(self) -> Dict[str, Product]:
         """Alle Produkte abrufen"""
         return self.repository.load_all_products()
