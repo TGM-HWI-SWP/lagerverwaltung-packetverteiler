@@ -177,6 +177,9 @@ class WarehouseMainWindow(QMainWindow):
         self.movements_table.setHorizontalHeaderLabels(
             ["Zeitstempel", "Produkt", "Typ", "Menge", "Grund"]
         )
+        self.movements_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.movements_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.movements_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.movements_table)
 
         widget.setLayout(layout)
