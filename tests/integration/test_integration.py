@@ -4,6 +4,7 @@ import pytest
 from src.adapters.repository import InMemoryRepository, RepositoryFactory
 from src.adapters.report import ConsoleReportAdapter
 from src.services import WarehouseService
+from src.domain.order import OrderStatus
 
 
 class TestIntegration:
@@ -33,6 +34,45 @@ class TestIntegration:
 
         total_value = service.get_total_inventory_value()
         assert total_value == 7200.0 + 1500.0  # (1200*6) + (25*60)  # (1200*6) + (25*60)
+
+    def test_supplier_customer_order_workflow(self):
+        """Test: Lieferanten, Kunden und Bestellungen"""
+        repository = RepositoryFactory.create_repository("memory")
+        service = WarehouseService(repository)
+
+        # Lieferant und Kunde erstellen
+        supplier = service.create_supplier("SUP-001", "TechSupplier GmbH", "info@techsupplier.de", "+49 123 456789")
+        customer = service.create_customer("CUST-001", "Max Mustermann", "max@example.com", "+49 987 654321")
+
+        # Produkt erstellen
+        service.create_product("LAPTOP-001", "Laptop ProBook", "Hochwertiger Laptop", 1200.0, initial_quantity=0)
+
+        # Einkaufsbestellung beim Lieferanten
+        order = service.create_order("ORDER-001", customer.id, supplier.id)
+        service.add_item_to_order("ORDER-001", "LAPTOP-001", 5, 1000.0)  # Einkaufspreis
+
+        # Bestellung als geliefert markieren
+        service.update_order_status("ORDER-001", OrderStatus.DELIVERED)
+
+        # Bestand sollte erhöht worden sein
+        laptop = service.get_product("LAPTOP-001")
+        assert laptop.quantity == 5
+
+        # Verkaufsbestellung an Kunden
+        sales_order = service.create_order("SALES-001", customer.id)
+        service.add_item_to_order("SALES-001", "LAPTOP-001", 2, 1200.0)  # Verkaufspreis
+
+        # Bestellung als geliefert markieren
+        service.update_order_status("SALES-001", OrderStatus.DELIVERED)
+
+        # Bestand sollte verringert worden sein
+        laptop = service.get_product("LAPTOP-001")
+        assert laptop.quantity == 3
+
+        # Assertions für Bestellungen
+        assert len(service.get_all_orders()) == 2
+        assert service.get_order("ORDER-001").total_amount == 5000.0  # 5 * 1000
+        assert service.get_order("SALES-001").total_amount == 2400.0  # 2 * 1200
 
     def test_report_generation(self):
         """Test: Report-Generierung"""
