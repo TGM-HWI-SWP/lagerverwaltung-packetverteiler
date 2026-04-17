@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 
@@ -9,7 +10,8 @@ from .services import WarehouseService
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "dev-secret-key"
 
-repository = RepositoryFactory.create_repository("memory")
+_DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "warehouse_data.json"
+repository = RepositoryFactory.create_repository("json", file_path=str(_DATA_FILE))
 service = WarehouseService(repository)
 
 

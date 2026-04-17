@@ -92,3 +92,19 @@ class TestIntegration:
         assert "Lagerbestandsbericht" in inventory_report or "Lagerbestandsbericht" not in inventory_report  # Placeholder
         assert len(inventory_report) > 0
         assert len(movement_report) > 0
+
+    def test_json_repository_persists_data(self, tmp_path):
+        """Test: JSON Repository speichert Daten über Neustarts hinweg"""
+        data_file = tmp_path / "warehouse_data.json"
+
+        first_repo = RepositoryFactory.create_repository("json", file_path=str(data_file))
+        first_service = WarehouseService(first_repo)
+        first_service.create_product("PERSIST-001", "Persist Produkt", "Test", 9.99, initial_quantity=4)
+
+        second_repo = RepositoryFactory.create_repository("json", file_path=str(data_file))
+        second_service = WarehouseService(second_repo)
+        restored = second_service.get_product("PERSIST-001")
+
+        assert restored is not None
+        assert restored.quantity == 4
+        assert restored.price == 9.99
