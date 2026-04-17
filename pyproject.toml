@@ -9,6 +9,7 @@ description = "Verwaltungssoftware für Lagerverwaltung/Produktmanagement"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "Flask>=2.3.0",
     "PyQt6>=6.6.0",
     "tinydb>=4.8.0",
     "pytest>=7.4.0",

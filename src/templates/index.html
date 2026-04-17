@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lagerverwaltung Web</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+    <header>
+        <div class="brand">Lagerverwaltung Web</div>
+        <div class="subtitle">Einfacher Webzugang für Produkte, Bestellungen und Lagerbewegungen</div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <section class="alerts">
+        {% for category, message in messages %}
+        <div class="alert {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </section>
+    {% endif %}
+    {% endwith %}
+
+    <main>
+        <section class="cards">
+            <article class="card">
+                <h2>Bestandswert</h2>
+                <p>{{ total_value | round(2) }} €</p>
+            </article>
+            <article class="card">
+                <h2>Produkte</h2>
+                <p>{{ products | length }} Produkt(e)</p>
+            </article>
+            <article class="card">
+                <h2>Bestellungen</h2>
+                <p>{{ orders | length }} Bestellung(en)</p>
+            </article>
+        </section>
+
+        <section>
+            <h2>Produktliste</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Kategorie</th>
+                            <th>Bestand</th>
+                            <th>Preis</th>
+                            <th>Wert</th>
+                            <th>Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>{{ product.id }}</td>
+                            <td>{{ product.name }}</td>
+                            <td>{{ product.category }}</td>
+                            <td>{{ product.quantity }}</td>
+                            <td>{{ product.price }} €</td>
+                            <td>{{ (product.quantity * product.price) | round(2) }} €</td>
+                            <td>
+                                <form action="/delete-product/{{ product.id }}" method="post">
+                                    <button type="submit" class="ghost">Löschen</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7">Noch keine Produkte vorhanden.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="grid two-column">
+            <article class="panel">
+                <h2>Produkt hinzufügen</h2>
+                <form action="/add-product" method="post">
+                    <label for="product_id">Produkt-ID</label>
+                    <input name="product_id" id="product_id" required />
+
+                    <label for="name">Name</label>
+                    <input name="name" id="name" required />
+
+                    <label for="description">Beschreibung</label>
+                    <input name="description" id="description" />
+
+                    <label for="category">Kategorie</label>
+                    <input name="category" id="category" />
+
+                    <label for="price">Preis (€)</label>
+                    <input name="price" id="price" type="number" step="0.01" min="0" value="0" required />
+
+                    <label for="quantity">Anfangsbestand</label>
+                    <input name="quantity" id="quantity" type="number" min="0" value="0" required />
+
+                    <button type="submit">Produkt anlegen</button>
+                </form>
+            </article>
+
+            <article class="panel">
+                <h2>Bestellung erstellen</h2>
+                <form action="/create-order" method="post">
+                    <label for="customer_id">Kunden-ID</label>
+                    <input name="customer_id" id="customer_id" required />
+
+                    <label for="customer_name">Kundenname</label>
+                    <input name="customer_name" id="customer_name" placeholder="Optional" />
+
+                    <label for="product_id">Produkt-ID</label>
+                    <input name="product_id" id="product_id" required />
+
+                    <label for="quantity">Menge</label>
+                    <input name="quantity" id="quantity" type="number" min="1" value="1" required />
+
+                    <button type="submit">Bestellung anlegen</button>
+                </form>
+            </article>
+        </section>
+
+        <section class="grid two-column">
+            <article class="panel">
+                <h2>Einlagern / Auslagern</h2>
+                <form action="/stock-in" method="post" class="stacked-form">
+                    <h3>Einlagern</h3>
+                    <label for="in_product_id">Produkt-ID</label>
+                    <input name="product_id" id="in_product_id" required />
+                    <label for="in_quantity">Menge</label>
+                    <input name="quantity" id="in_quantity" type="number" min="1" value="1" required />
+                    <label for="in_reason">Grund</label>
+                    <input name="reason" id="in_reason" value="Einlagerung" />
+                    <button type="submit">Einlagern</button>
+                </form>
+                <form action="/stock-out" method="post" class="stacked-form">
+                    <h3>Auslagern</h3>
+                    <label for="out_product_id">Produkt-ID</label>
+                    <input name="product_id" id="out_product_id" required />
+                    <label for="out_quantity">Menge</label>
+                    <input name="quantity" id="out_quantity" type="number" min="1" value="1" required />
+                    <label for="out_reason">Grund</label>
+                    <input name="reason" id="out_reason" value="Auslagerung" />
+                    <button type="submit">Auslagern</button>
+                </form>
+            </article>
+
+            <article class="panel">
+                <h2>Bestellungen</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Kunde</th>
+                                <th>Status</th>
+                                <th>Gesamt</th>
+                                <th>Positionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.id }}</td>
+                                <td>{{ order.customer_id }}</td>
+                                <td>{{ order.status.value }}</td>
+                                <td>{{ order.total_amount | round(2) }} €</td>
+                                <td>
+                                    <ul>
+                                        {% for item in order.items %}
+                                        <li>{{ item.product_name }} × {{ item.quantity }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5">Noch keine Bestellungen vorhanden.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+
+        <section>
+            <h2>Lagerbewegungen</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zeit</th>
+                            <th>Produkt</th>
+                            <th>Typ</th>
+                            <th>Menge</th>
+                            <th>Grund</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movement in movements %}
+                        <tr>
+                            <td>{{ movement.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ movement.product_name }}</td>
+                            <td>{{ movement.movement_type }}</td>
+                            <td>{{ movement.quantity_change }}</td>
+                            <td>{{ movement.reason }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5">Noch keine Lagerbewegungen.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

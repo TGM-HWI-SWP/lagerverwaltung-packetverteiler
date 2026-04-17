@@ -77,6 +77,9 @@ pytest
 
 # 5. GUI starten
 python -m src.ui
+
+# 6. Web-Oberfläche starten
+python -m src.web
 ```
 
 ## Architektur
