@@ -4,204 +4,157 @@
 
 **Projekttitel:** Lagerverwaltungssystem  
 **Projektdauer:** 8 Wochen  
-**Gruppengröße:** 4 Personen  
-**Projektverantwortung:** [Name Rolle 1]
+**Gruppengröße:** 3 Personen  
+**Projektverantwortung:** [Klenti Zoto Rolle 1]
 
 ---
 
 ## Versionsmilestones
 
 ### v0.1 - Projektstart & Grundarchitektur
-**Abschluss:** [Datum]
+**Abschluss:** [13.03.2026]
 
 #### Was lief gut?
 - [ ] Klare Rollenverteilung
 - [ ] Erste Architektur aufgebaut
 - [ ] Team-Kommunikation etabliert
-- [ ] [Weiteres...]
 
 #### Was konnte verbessert werden?
-- [ ] [Punkt 1]
-- [ ] [Punkt 2]
-- [ ] [Punkt 3]
+- [ ] [Code struktur]
+- [ ] [Funktionalität]
+- [ ] [commits]
 
 #### Learnings
-- [Gelernte Lessons]
+- [mehr kleinere commits]
+- [gleich klare Dokumentation des changelogs]
+- [strukturierter code von anfang an]
 
 ---
 
 ### v0.2 - Walking Skeleton
-**Abschluss:** [Datum]
+**Abschluss:** [20.03.2026]
 
 #### Was lief gut?
 - [ ] Schnittstellen dokumentiert
 - [ ] Basis-Tests geschrieben
 - [ ] Git-Workflow etabliert
-- [ ] [Weiteres...]
 
 #### Was konnte verbessert werden?
-- [ ] [Punkt 1]
-- [ ] [Punkt 2]
+- [ ] [genauere Tests]
+- [ ] [mehr kleinere commits]
 
 #### Learnings
-- [Gelernte Lessons]
+- [strukturierter code von anfang an]
 
 ---
 
 ### v0.3 - Kernlogik & GUI
-**Abschluss:** [Datum]
+**Abschluss:** [17.04.2026]
 
 #### Was lief gut?
 - [ ] Businesslogik stabil
 - [ ] GUI-Skeleton funktioniert
 - [ ] Services-Layer gut strukturiert
-- [ ] [Weiteres...]
 
 #### Was konnte verbessert werden?
-- [ ] [Punkt 1]
-- [ ] [Punkt 2]
+- [ ] [klarer code]
 
 #### Learnings
-- [Gelernte Lessons]
+- [einheitliche styles]
 
 ---
 
 ### v0.4 - Reports
-**Abschluss:** [Datum]
+**Abschluss:** [23.04.2026]
 
 #### Was lief gut?
 - [ ] Report A implementiert
-- [ ] Report B implementiert
 - [ ] Tests geschrieben
-- [ ] [Weiteres...]
 
 #### Was konnte verbessert werden?
-- [ ] [Punkt 1]
-- [ ] [Punkt 2]
+- [ ] [genauere Beschreibung]
 
 #### Learnings
-- [Gelernte Lessons]
+- [früher beginnen]
 
 ---
 
 ### v0.5 - Tests & Stabilisierung
-**Abschluss:** [Datum]
+**Abschluss:** [24.04.2026]
 
 #### Was lief gut?
 - [ ] Test-Coverage erhöht
 - [ ] Bugs gefunden und gefixt
 - [ ] Code optimiert
-- [ ] [Weiteres...]
 
 #### Was konnte verbessert werden?
-- [ ] [Punkt 1]
-- [ ] [Punkt 2]
+- [ ] [genauere Tests]
 
 #### Learnings
-- [Gelernte Lessons]
+- [früher beginnen]
 
 ---
 
-### v1.0 - Finale & Präsentation
-**Abschluss:** [Datum]
-
-#### Was lief gut?
-- [ ] Alle Features fertig
-- [ ] Dokumentation vollständig
-- [ ] Präsentation gut gelaufen
-- [ ] [Weiteres...]
-
-#### Was konnte verbessert werden?
-- [ ] [Punkt 1]
-- [ ] [Punkt 2]
-
-#### Learnings
-- [Gelernte Lessons]
-
----
 
 ## Überblick: Stärken & Schwächen
 
 ### Team-Stärken
 - [ ] Kommunikation
 - [ ] Code-Qualität
-- [ ] Zusammenarbeit
 - [ ] Problem-Solving
-- [ ] Dokumentation
 
 ### Verbesserungspotenzial
-- [ ] [Bereich 1]
-- [ ] [Bereich 2]
-- [ ] [Bereich 3]
+- [ ] [Dokumentation]
+- [ ] [Zusammenarbeit]
 
 ### Einzelne Learnings pro Rolle
 
 #### Rolle 1 (Contract Owner)
-- Gelernt: [...]
-- Verbessern: [...]
+- Gelernt: [Dokumentation, git, commits]
+- Verbessern: [Dokumentation]
 
 #### Rolle 2 (Businesslogik & Report A)
-- Gelernt: [...]
-- Verbessern: [...]
-
-#### Rolle 3 (Report B & Tests)
-- Gelernt: [...]
-- Verbessern: [...]
+- Gelernt: [code, Dokumentation, commits, git]
+- Verbessern: [commits]
 
 #### Rolle 4 (GUI & Interaktion)
-- Gelernt: [...]
-- Verbessern: [...]
+- Gelernt: [GUI codes, commits, git]
+- Verbessern: [commits]
 
 ---
 
 ## Technische Erkenntnisse
 
 ### Was funktioniert gut?
-- Port-Adapter-Architektur: [Feedback]
-- Testing-Ansatz: [Feedback]
-- Git-Workflow: [Feedback]
-- [Weiteres...]
-
-### Technische Schulden
-- [ ] [Punkt 1]
-- [ ] [Punkt 2]
-- [ ] [Punkt 3]
+- Port-Adapter-Architektur: [code gut strukturiert]
+- Testing-Ansatz: [Ansätze waren gut, Tests haben positive Ergebnisse geliefert, mehr Tests wären besser]
+- Git-Workflow: [hat gut funktioniert, außer mehr kleinere commits und genauere benennung]
 
 ### Empfehlungen für Folge-Projekte
-1. [Empfehlung 1]
-2. [Empfehlung 2]
-3. [Empfehlung 3]
+1. [mehr kleinere commits]
+2. [besser doku pflege]
 
 ---
 
-## Mergekonflikte & Lösungen
-
-| Datei | Konflikt-Typ | Lösung | Gelerntes |
-|-------|-------------|--------|----------|
-| [Datei] | [Typ] | [Lösung] | [Lesson] |
-| | | | |
-
----
 
 ## Abschließende Bewertung
 
 ### Projektqualität (1-10)
-- Code-Qualität: [ ]
-- Dokumentation: [ ]
-- Tests: [ ]
-- Zusammenarbeit: [ ]
-- **Durchschnitt:** [ ]
+- Code-Qualität: [10]
+- Dokumentation: [5]
+- Tests: [8]
+- Zusammenarbeit: [9]
+- **Durchschnitt:** [8]
 
 ### Was würde ich anders machen?
-1. [Punkt 1]
-2. [Punkt 2]
-3. [Punkt 3]
+1. [genauere Dokumentation]
+2. [mehr kleine commits]
+3. [genauere Bennenung der commits]
 
 ### Feedback an die Lehrperson
-- [Feedback 1]
-- [Feedback 2]
+- [gute klare Angabe]
 
 ---
 
-**Retrospektive erstellt:** [Datum]  
-**Geschrieben von:** [Name + Rolle]
+**Retrospektive fertig gestellt:** [23.04.2026]  
+**Geschrieben von:** [Max Zwanzinger + Rolle 2]
