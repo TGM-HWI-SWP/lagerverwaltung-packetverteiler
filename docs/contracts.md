@@ -4,6 +4,8 @@
 
 Diese Datei dokumentiert alle externen Schnittstellen des Projekts. Sie wird von Rolle 1 (Contract Owner) gepflegt und aktualisiert bei jeder Änderung.
 
+**Persistierungs-Adapter Dokumentation:** Siehe [docs/persistence_adapters.md](persistence_adapters.md) für detaillierte Dokumentation zu JSON, SQLite und In-Memory Adaptern.
+
 ---
 
 ## 1. RepositoryPort

@@ -1,8 +1,9 @@
-"""Repository Adapter"""
+"""Repository Adapter - In-Memory, JSON, und SQLite Persistierung"""
 
 from dataclasses import asdict
 from datetime import datetime
 import json
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -308,15 +309,492 @@ class JsonFileRepository(RepositoryPort):
             self._persist()
 
 
+class SqliteRepository(RepositoryPort):
+    """SQLite-Persistierungs-Adapter für Datenbankoperationen"""
+
+    def __init__(self, db_path: str = "data/warehouse.db"):
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize_database()
+
+    def _get_connection(self):
+        """Erstelle eine Datenbankverbindung"""
+        conn = sqlite3.connect(str(self.db_path))
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _initialize_database(self) -> None:
+        """Erstelle Datenbanktabellen beim ersten Start"""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        # Produkt-Tabelle
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS products (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                price REAL NOT NULL,
+                quantity INTEGER NOT NULL,
+                sku TEXT,
+                category TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                notes TEXT
+            )
+        """)
+
+        # Lagerbewegung-Tabelle
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS movements (
+                id TEXT PRIMARY KEY,
+                product_id TEXT NOT NULL,
+                product_name TEXT NOT NULL,
+                quantity_change INTEGER NOT NULL,
+                movement_type TEXT NOT NULL,
+                reason TEXT,
+                timestamp TEXT,
+                performed_by TEXT,
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            )
+        """)
+
+        # Lieferanten-Tabelle
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS suppliers (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                contact_email TEXT NOT NULL,
+                contact_phone TEXT,
+                address TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                notes TEXT
+            )
+        """)
+
+        # Kunden-Tabelle
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS customers (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                contact_email TEXT NOT NULL,
+                contact_phone TEXT,
+                address TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                notes TEXT
+            )
+        """)
+
+        # Bestellungen-Tabelle
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                id TEXT PRIMARY KEY,
+                customer_id TEXT NOT NULL,
+                supplier_id TEXT,
+                status TEXT,
+                order_date TEXT,
+                delivery_date TEXT,
+                total_amount REAL,
+                created_at TEXT,
+                updated_at TEXT,
+                notes TEXT,
+                FOREIGN KEY (customer_id) REFERENCES customers(id),
+                FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+            )
+        """)
+
+        # Bestellungs-Items-Tabelle
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id TEXT NOT NULL,
+                product_id TEXT NOT NULL,
+                product_name TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                unit_price REAL NOT NULL,
+                total_price REAL,
+                FOREIGN KEY (order_id) REFERENCES orders(id),
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            )
+        """)
+
+        conn.commit()
+        conn.close()
+
+    # ===== PRODUKT METHODEN =====
+
+    def save_product(self, product: Product) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO products 
+            (id, name, description, price, quantity, sku, category, created_at, updated_at, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            product.id, product.name, product.description, product.price, product.quantity,
+            product.sku, product.category, product.created_at.isoformat(),
+            product.updated_at.isoformat(), product.notes
+        ))
+        conn.commit()
+        conn.close()
+
+    def load_product(self, product_id: str) -> Optional[Product]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products WHERE id = ?", (product_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return None
+
+        return Product(
+            id=row["id"], name=row["name"], description=row["description"],
+            price=row["price"], quantity=row["quantity"], sku=row["sku"],
+            category=row["category"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+            notes=row["notes"]
+        )
+
+    def load_all_products(self) -> Dict[str, Product]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products")
+        rows = cursor.fetchall()
+        conn.close()
+
+        products = {}
+        for row in rows:
+            product = Product(
+                id=row["id"], name=row["name"], description=row["description"],
+                price=row["price"], quantity=row["quantity"], sku=row["sku"],
+                category=row["category"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=datetime.fromisoformat(row["updated_at"]),
+                notes=row["notes"]
+            )
+            products[product.id] = product
+
+        return products
+
+    def delete_product(self, product_id: str) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM products WHERE id = ?", (product_id,))
+        conn.commit()
+        conn.close()
+
+    # ===== BEWEGUNG METHODEN =====
+
+    def save_movement(self, movement: Movement) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO movements 
+            (id, product_id, product_name, quantity_change, movement_type, reason, timestamp, performed_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            movement.id, movement.product_id, movement.product_name, movement.quantity_change,
+            movement.movement_type, movement.reason, movement.timestamp.isoformat(),
+            movement.performed_by
+        ))
+        conn.commit()
+        conn.close()
+
+    def load_movements(self) -> List[Movement]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM movements ORDER BY timestamp DESC")
+        rows = cursor.fetchall()
+        conn.close()
+
+        movements = []
+        for row in rows:
+            movement = Movement(
+                id=row["id"], product_id=row["product_id"], product_name=row["product_name"],
+                quantity_change=row["quantity_change"], movement_type=row["movement_type"],
+                reason=row["reason"], timestamp=datetime.fromisoformat(row["timestamp"]),
+                performed_by=row["performed_by"]
+            )
+            movements.append(movement)
+
+        return movements
+
+    # ===== LIEFERANT METHODEN =====
+
+    def save_supplier(self, supplier: Supplier) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO suppliers 
+            (id, name, contact_email, contact_phone, address, created_at, updated_at, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            supplier.id, supplier.name, supplier.contact_email, supplier.contact_phone,
+            supplier.address, supplier.created_at.isoformat(),
+            supplier.updated_at.isoformat(), supplier.notes
+        ))
+        conn.commit()
+        conn.close()
+
+    def load_supplier(self, supplier_id: str) -> Optional[Supplier]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM suppliers WHERE id = ?", (supplier_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return None
+
+        return Supplier(
+            id=row["id"], name=row["name"], contact_email=row["contact_email"],
+            contact_phone=row["contact_phone"], address=row["address"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+            notes=row["notes"]
+        )
+
+    def load_all_suppliers(self) -> Dict[str, Supplier]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM suppliers")
+        rows = cursor.fetchall()
+        conn.close()
+
+        suppliers = {}
+        for row in rows:
+            supplier = Supplier(
+                id=row["id"], name=row["name"], contact_email=row["contact_email"],
+                contact_phone=row["contact_phone"], address=row["address"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=datetime.fromisoformat(row["updated_at"]),
+                notes=row["notes"]
+            )
+            suppliers[supplier.id] = supplier
+
+        return suppliers
+
+    def delete_supplier(self, supplier_id: str) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM suppliers WHERE id = ?", (supplier_id,))
+        conn.commit()
+        conn.close()
+
+    # ===== KUNDEN METHODEN =====
+
+    def save_customer(self, customer: Customer) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO customers 
+            (id, name, contact_email, contact_phone, address, created_at, updated_at, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            customer.id, customer.name, customer.contact_email, customer.contact_phone,
+            customer.address, customer.created_at.isoformat(),
+            customer.updated_at.isoformat(), customer.notes
+        ))
+        conn.commit()
+        conn.close()
+
+    def load_customer(self, customer_id: str) -> Optional[Customer]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM customers WHERE id = ?", (customer_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return None
+
+        return Customer(
+            id=row["id"], name=row["name"], contact_email=row["contact_email"],
+            contact_phone=row["contact_phone"], address=row["address"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+            notes=row["notes"]
+        )
+
+    def load_all_customers(self) -> Dict[str, Customer]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM customers")
+        rows = cursor.fetchall()
+        conn.close()
+
+        customers = {}
+        for row in rows:
+            customer = Customer(
+                id=row["id"], name=row["name"], contact_email=row["contact_email"],
+                contact_phone=row["contact_phone"], address=row["address"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=datetime.fromisoformat(row["updated_at"]),
+                notes=row["notes"]
+            )
+            customers[customer.id] = customer
+
+        return customers
+
+    def delete_customer(self, customer_id: str) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
+        conn.commit()
+        conn.close()
+
+    # ===== BESTELLUNGEN METHODEN =====
+
+    def save_order(self, order: Order) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT OR REPLACE INTO orders 
+            (id, customer_id, supplier_id, status, order_date, delivery_date, total_amount, created_at, updated_at, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            order.id, order.customer_id, order.supplier_id, order.status.value,
+            order.order_date.isoformat(),
+            order.delivery_date.isoformat() if order.delivery_date else None,
+            order.total_amount, order.created_at.isoformat(),
+            order.updated_at.isoformat(), order.notes
+        ))
+
+        # Lösche alte Items
+        cursor.execute("DELETE FROM order_items WHERE order_id = ?", (order.id,))
+
+        # Speichere neue Items
+        for item in order.items:
+            cursor.execute("""
+                INSERT INTO order_items 
+                (order_id, product_id, product_name, quantity, unit_price, total_price)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                order.id, item.product_id, item.product_name, item.quantity,
+                item.unit_price, item.total_price
+            ))
+
+        conn.commit()
+        conn.close()
+
+    def load_order(self, order_id: str) -> Optional[Order]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            conn.close()
+            return None
+
+        # Lade Order Items
+        cursor.execute("SELECT * FROM order_items WHERE order_id = ?", (order_id,))
+        items_rows = cursor.fetchall()
+        conn.close()
+
+        items = [
+            OrderItem(
+                product_id=item_row["product_id"],
+                product_name=item_row["product_name"],
+                quantity=item_row["quantity"],
+                unit_price=item_row["unit_price"]
+            )
+            for item_row in items_rows
+        ]
+
+        order = Order(
+            id=row["id"], customer_id=row["customer_id"], supplier_id=row["supplier_id"],
+            items=items, status=OrderStatus(row["status"]),
+            order_date=datetime.fromisoformat(row["order_date"]),
+            delivery_date=datetime.fromisoformat(row["delivery_date"]) if row["delivery_date"] else None,
+            created_at=datetime.fromisoformat(row["created_at"]),
+            updated_at=datetime.fromisoformat(row["updated_at"]),
+            notes=row["notes"]
+        )
+        return order
+
+    def load_all_orders(self) -> Dict[str, Order]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM orders")
+        rows = cursor.fetchall()
+
+        orders = {}
+        for row in rows:
+            # Lade Items für diese Order
+            cursor.execute("SELECT * FROM order_items WHERE order_id = ?", (row["id"],))
+            items_rows = cursor.fetchall()
+
+            items = [
+                OrderItem(
+                    product_id=item_row["product_id"],
+                    product_name=item_row["product_name"],
+                    quantity=item_row["quantity"],
+                    unit_price=item_row["unit_price"]
+                )
+                for item_row in items_rows
+            ]
+
+            order = Order(
+                id=row["id"], customer_id=row["customer_id"], supplier_id=row["supplier_id"],
+                items=items, status=OrderStatus(row["status"]),
+                order_date=datetime.fromisoformat(row["order_date"]),
+                delivery_date=datetime.fromisoformat(row["delivery_date"]) if row["delivery_date"] else None,
+                created_at=datetime.fromisoformat(row["created_at"]),
+                updated_at=datetime.fromisoformat(row["updated_at"]),
+                notes=row["notes"]
+            )
+            orders[order.id] = order
+
+        conn.close()
+        return orders
+
+    def delete_order(self, order_id: str) -> None:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
+        cursor.execute("DELETE FROM orders WHERE id = ?", (order_id,))
+        conn.commit()
+        conn.close()
+
+
 class RepositoryFactory:
+    """Factory Pattern für Repository-Erstellung"""
 
     @staticmethod
-    def create_repository(repository_type: str = "memory", **kwargs):
-
+    def create_repository(repository_type: str = "memory", **kwargs) -> RepositoryPort:
+        """
+        Erstelle ein Repository basierend auf Typ.
+        
+        Args:
+            repository_type: "memory", "json", oder "sqlite"
+            **kwargs: Zusätzliche Parameter (z.B. file_path für JSON/SQLite)
+        
+        Returns:
+            RepositoryPort-Implementierung
+        
+        Raises:
+            ValueError: Falls repository_type unbekannt ist
+        """
         if repository_type == "memory":
             return InMemoryRepository()
 
         if repository_type == "json":
-            return JsonFileRepository(file_path=kwargs.get("file_path", "data/warehouse_data.json"))
+            return JsonFileRepository(
+                file_path=kwargs.get("file_path", "data/warehouse_data.json")
+            )
 
-        raise ValueError("Unbekannter Repository Typ")
+        if repository_type == "sqlite":
+            return SqliteRepository(
+                db_path=kwargs.get("db_path", "data/warehouse.db")
+            )
+
+        raise ValueError(
+            f"Unbekannter Repository-Typ '{repository_type}'. "
+            "Unterstützt: 'memory', 'json', 'sqlite'"
+        )

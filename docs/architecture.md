@@ -103,16 +103,37 @@ class ReportPort(ABC):
 
 #### `repository.py`
 
-**InMemoryRepository**
+**InMemoryRepository** (v0.1)
 - **Ziel:** Schnell, für Tests und Prototyping
 - **Speicher:** In RAM (Dict, List)
 - **Performance:** O(1) für Zugriff
 - **Persistenz:** Nein
+- **Use Case:** Unit/Integration Tests, Entwicklung
 
-**RepositoryFactory**
+**JsonFileRepository** (v0.2)
+- **Ziel:** Einfache Persistierung ohne externe Abhängigkeiten
+- **Speicher:** JSON-Datei (`data/warehouse_data.json`)
+- **Performance:** Moderate für kleine Datenmengen
+- **Persistenz:** Ja, automatisch nach jeder Änderung
+- **Use Case:** Demo, Kleine Projekte, lokale Entwicklung
+- **Schema:** Strukturierte JSON mit Produkten, Bewegungen, Kunden, Lieferanten, Bestellungen
+
+**SqliteRepository** (v0.2)
+- **Ziel:** Production-ready mit ACID-Transaktionen
+- **Speicher:** SQLite DB-Datei (`data/warehouse.db`)
+- **Performance:** Optimal für große Datenmengen
+- **Persistenz:** Ja, mit Foreign Key Constraints
+- **Use Case:** Production, komplexe Abfragen, Multi-User
+- **Schema:** 6 Tabellen mit Relationships (products, movements, suppliers, customers, orders, order_items)
+
+**RepositoryFactory** (v0.2)
 - **Pattern:** Factory Pattern
-- **Methode:** `create_repository(type: str) -> RepositoryPort`
-- **Typen:** "memory" (weitere später)
+- **Methode:** `create_repository(type: str, **kwargs) -> RepositoryPort`
+- **Typen:** 
+  - `"memory"` → InMemoryRepository
+  - `"json"` → JsonFileRepository
+  - `"sqlite"` → SqliteRepository
+- **Vorteil:** Zentrale Verwaltung, einfache Adapter-Umschaltung
 
 #### `report.py`
 
@@ -120,6 +141,40 @@ class ReportPort(ABC):
 - **Ziel:** Text-basierte Report-Generierung
 - **Ausgabe:** Formatierte Strings
 - **Verwendung:** Console, Logging, Dateiexport
+
+---
+
+## Persistierungs-Strategien
+
+### Adapter-Vergleich
+
+| Eigenschaft | Memory | JSON | SQLite |
+|---|---|---|---|
+| Persistierung | ❌ | ✅ | ✅ |
+| Externe Abhängigkeiten | ❌ | ❌ | ❌ |
+| Performance | 🔥🔥🔥 | 🔥🔥 | 🔥🔥🔥* |
+| Datengröße-Limit | RAM | File System | ~2GB |
+| ACID | ❌ | ❌ | ✅ |
+| Transactions | ❌ | ❌ | ✅ |
+| Foreign Keys | ❌ | ❌ | ✅ |
+| Komplexe Queries | ❌ | ❌ | ✅ |
+| Production | ❌ | ⚠️ | ✅ |
+| Testing | ✅ | ✅ | ✅ |
+
+*SQLite ist schneller bei großen Datenmengen und komplexen Operationen.
+
+### Auswahl-Kriterium
+
+- **Tests & Entwicklung** → InMemoryRepository
+- **Demo & Prototyping** → JsonFileRepository
+- **Production & Skalierung** → SqliteRepository
+
+---
+
+## Detaillierte Dokumentation
+
+**Für vollständige Dokumentation zu Persistierungs-Adaptern siehe:**
+→ [docs/persistence_adapters.md](persistence_adapters.md)
 
 ### 4. Services (`src/services/`)
 

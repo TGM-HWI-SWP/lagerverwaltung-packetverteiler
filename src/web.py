@@ -11,7 +11,7 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = "dev-secret-key"
 
 _DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "warehouse_data.json"
-repository = RepositoryFactory.create_repository("json", file_path=str(_DATA_FILE))
+repository = RepositoryFactory.create_repository("sqlite")
 service = WarehouseService(repository)
 
 
